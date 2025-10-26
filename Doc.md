@@ -1071,13 +1071,15 @@ $ node scripts/check-i18n-consistency.js
 error Command failed with exit code 1.
 ```
 
-
+大功告成！
 
 
 
 ## 最后
 
+好了，我的 React SPA 多语言方案大致已经梳理清楚了，如果你也有一些不同的见解，欢迎留言交流。
 
+下次，给大家带来 React SPA + Antd 的使用分析，通过其 token 机制制定多主题色系统，最终实现一个我们满意的风格的文章。
 
 
 

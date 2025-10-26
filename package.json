@@ -32,5 +32,6 @@
     "lint-staged": "^16.2.6",
     "typescript": "^5.9.3"
   },
-  "packageManager": "yarn@1.22.22"
+  "packageManager": "yarn@1.22.22",
+  "license": "MIT"
 }
