@@ -1,5 +1,2 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
 echo "✨ Running lint-staged and i18n check..."
 yarn run check:i18n

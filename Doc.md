@@ -894,6 +894,183 @@ export default i18n
 
 开发过程中修改翻译资源容易遗漏某个语言的信息，很有必要添加一个 script 在提交 Git 记录的时候提前检测翻译资源，以免字段没有对齐。
 
+首先，添加相关 scripts 到 package.json 里：
+
+```json
+{
+  "scripts": {
+    "check:i18n": "node scripts/check-i18n-consistency.js",
+    "prepare": "husky install"
+  }
+}
+```
+
+创建在根目录的 scripts 目录下编辑 check-i18n-consistency.js:
+
+```js
+#!/usr/bin/env node
+/**
+ * 检查 /locales/en/*.json 是否在其他语言下都有对应文件，
+ * 并确保 JSON key 一致。
+ */
+import fs from "fs"
+import path from "path"
+
+const BASE_LANG = "en"
+const LOCALES_DIR = path.resolve("./public/locales")
+
+function getAllLangs() {
+  return fs
+    .readdirSync(LOCALES_DIR)
+    .filter((f) => fs.statSync(path.join(LOCALES_DIR, f)).isDirectory())
+}
+
+function loadJson(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, "utf8")
+    return JSON.parse(content)
+  } catch (e) {
+    console.error(`❌ 无法解析 JSON 文件：${filePath}`)
+    process.exit(1)
+  }
+}
+
+function getJsonKeys(obj, prefix = "") {
+  let keys = []
+  for (const key in obj) {
+    const full = prefix ? `${prefix}.${key}` : key
+    if (typeof obj[key] === "object" && obj[key] !== null) {
+      keys = keys.concat(getJsonKeys(obj[key], full))
+    } else {
+      keys.push(full)
+    }
+  }
+  return keys
+}
+
+// ----------------- 主逻辑 -----------------
+const langs = getAllLangs()
+if (!langs.includes(BASE_LANG)) {
+  console.error(`❌ 缺少基准语言目录：${BASE_LANG}`)
+  process.exit(1)
+}
+
+const baseFiles = fs
+  .readdirSync(path.join(LOCALES_DIR, BASE_LANG))
+  .filter((f) => f.endsWith(".json"))
+
+let hasError = false
+
+for (const lang of langs.filter((l) => l !== BASE_LANG)) {
+  console.log(`🔍 检查语言：${lang}`)
+
+  for (const file of baseFiles) {
+    const baseFile = path.join(LOCALES_DIR, BASE_LANG, file)
+    const targetFile = path.join(LOCALES_DIR, lang, file)
+
+    if (!fs.existsSync(targetFile)) {
+      console.error(`❌ 缺少 ${lang}/${file}`)
+      hasError = true
+      continue
+    }
+
+    const baseJson = loadJson(baseFile)
+    const targetJson = loadJson(targetFile)
+
+    const baseKeys = getJsonKeys(baseJson)
+    const targetKeys = getJsonKeys(targetJson)
+
+    const missing = baseKeys.filter((k) => !targetKeys.includes(k))
+    const extra = targetKeys.filter((k) => !baseKeys.includes(k))
+
+    if (missing.length || extra.length) {
+      console.error(`❌ ${lang}/${file} 键不一致:`)
+      if (missing.length)
+        console.error(`   缺少：${missing.join(", ")}`)
+      if (extra.length)
+        console.error(`   多余：${extra.join(", ")}`)
+      hasError = true
+    }
+  }
+}
+
+if (hasError) {
+  console.error("\n🚫 多语言文件结构不一致，请修复后再提交。")
+  process.exit(1)
+}
+
+console.log("✅ 多语言文件检查通过！")
+process.exit(0)
+
+```
+
+接着安装`husky`并初始化：
+
+```bash
+yarn add -D husky
+yarn husky install
+```
+
+创建 pre-commit 钩子：
+
+```bash
+mkdir -p .husky
+touch .husky/pre-commit
+chmod +x .husky/pre-commit
+```
+
+> husky v9 版本更新之后，配置可能有所不同
+
+编辑 pre-commit:
+
+```bash
+echo "✨ Running lint-staged and i18n check..."
+yarn run check:i18n
+```
+
+上述 sh 脚本会在 git 提交的时候执行 `check:i18n` 这个命令，我们也可以在其他时候执行以下检查字段有没有对齐。
+
+好了，让我们来检查一下是否顺利。
+
+```bash
+➜  react-i18n-best-practice git:(main) ✗ yarn check:i18n
+yarn run v1.22.22
+$ node scripts/check-i18n-consistency.js
+🔍 检查语言：fr
+🔍 检查语言：zh
+✅ 多语言文件检查通过！
+✨  Done in 0.96s.
+➜  react-i18n-best-practice git:(main) ✗ 
+```
+
+将 `locales/zh/common.json`修改为：
+
+```json
+{
+  "welcome": "欢迎",
+  "loading": "加载中...",
+  "error": "错误",
+  "successssss": "成功"
+}
+```
+
+再提交 git 让 husky 检查一次：
+
+```bash
+➜  react-i18n-best-practice git:(main) ✗ gacm "chore: test husky"
+✨ Running lint-staged and i18n check...
+yarn run v1.22.22
+$ node scripts/check-i18n-consistency.js
+🔍 检查语言：fr
+🔍 检查语言：zh
+❌ zh/common.json 键不一致:
+   缺少：success
+   多余：successssss
+
+🚫 多语言文件结构不一致，请修复后再提交。
+error Command failed with exit code 1.
+```
+
 
 
 
