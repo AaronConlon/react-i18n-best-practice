@@ -1,14 +1,14 @@
-# 从零开始介绍我的 react i18n 方案
+# React i18n 浅解
 
 
 
-使用核心 lib: `i18next`和`react-i18next`从零开始配置`i18n`解决方案。
+今天，让我来分享一下自己对于 React i18n 的理解，并使用核心 lib: `i18next`和`react-i18next`从零开始配置解决方案。
 
 > `react-i18next` 版本为：`16.1.5`，因此相关文档需要看 LeGACY v9 的部分：https://react.i18next.com/legacy-v9/step-by-step-guide
 
-前者是一个与框架无关的国际化库，无论 nodejs 和浏览器端都可以在工程化中使用。后者是 React 的适配层，且是基于`i18next`的绑定层，有了它我们就可以在`React`中轻松实现翻译功能。
+前者是一个与框架无关的国际化库，无论 nodejs 和浏览器端都可以在工程化中使用。后者是 React 的适配层，且是基于`i18next`的绑定层，有了它我们就可以在`React`中轻松添加 i18n 支持。
 
-
+项目仓库：[AaronConlon/react-i18n-best-practice](https://github.com/AaronConlon/react-i18n-best-practice)
 
 ## 目标
 
@@ -28,10 +28,6 @@
 
 - 翻译文件一致性检测脚本
 
-  
-
-
-
 ## 行动
 
 ### 准备工作
@@ -40,12 +36,8 @@
 2. 安装 i18n libs
    1. react-i18next
    2. i18next
-3. 安装 @tanstack/react-router 和 @tanstack/router-plugin， 并且根据文档添加 rsbuild 配置来启用 react-router
-4. 根据 https://github.com/TanStack/router/tree/main/examples/react/quickstart-rspack-file-based 这个例子，配置好可运行的环境
-
-
-
-
+3. 安装 @tanstack/react-router 和 @tanstack/router-plugin，并且根据文档添加 rsbuild 配置来启用 react-router
+4. 根据 <https://github.com/TanStack/router/tree/main/examples/react/quickstart-rspack-file-based> 这个例子，配置好可运行的环境
 
 ### 常规多语言及切换
 
@@ -131,8 +123,6 @@ if (rootEl) {
 }
 ```
 
-
-
 然后看看 `routes`下的几个路由文件：
 
 ### __root.tsx
@@ -193,8 +183,6 @@ function RouteComponent() {
 
 > 如上所示是 react-i18next 最常规的使用方法，还有几种写法和在 react 组件外获取翻译内容，有兴趣可以去看文档
 
-
-
 现在，在`/`路由下点击语言切换即可看到效果：
 
 **英语**：
@@ -207,8 +195,6 @@ function RouteComponent() {
 ### 语言持久化和语言检测
 
 如果仅需实现持久化，则简单在`i18n.ts`这里直接将硬编码的默认语言改为从 localStorage 或 cookie 里读取即可，如此一来既可以让后端接口返回自动修改用户语言，也可以在修改语言的时候将选择的语言保存到本地。
-
-
 
 我个人更喜欢另一种方案：`i18next-browser-languagedetector`插件，根据用户浏览器的语言来设置默认语言！
 
@@ -241,7 +227,7 @@ i18n
 
 > 测试的浏览器语言是中文，因此在代码里加上中文相关的 resource 翻译和 select option 即可。
 
-此时，浏览器的 localStorage 里会自动加上`i18nextLng` ，其值为`cn`。
+此时，浏览器的 localStorage 里会自动加上`i18nextLng` ，其值为`zh`。
 
 
 
@@ -308,13 +294,11 @@ export default i18n;
 
 首先，我们将翻译资源统一放在 `src/locales`下，按语言命名通过 json 导入，然后赋值给`translation`（默认命名空间）。
 
-
-
 当项目进一步扩大之后，翻译 json 文件将会变得越来越大，无论是查找还是修改都非常麻烦（在一个超大 json 文件中增删改查）。这时候，我们可以将翻译文件分为若干模块：
 
 - Common (通用)
 - User（用户页面）
-- Dashboard （看板页面）
+- Dashboard（看板页面）
 
 这时候我们可以在`locales`下创建多语言目录，并且在目录内创建若干个命名空间对应的`json`文件：
 
@@ -405,8 +389,6 @@ function RouteComponent() {
 
 如果不传参给`useTranslation`，那么就会从`i18n.ts`里的默认命名空间去寻找翻译结果。
 
-
-
 函数`t()`根据传入的 key 去获取翻译自有一套规则，并且可能会根据版本变化而更新。
 
 与其花时间去折腾其规则，不如创建多个指定命名空间且名字不同的`t`函数，亦或者统一在`t()`函数传参的时候写明命名空间。
@@ -437,10 +419,6 @@ function RouteComponent() {
   );
 }
 ```
-
-
-
-
 
 ### TypeScript 编写体验优化
 
@@ -513,8 +491,6 @@ export default i18n;
 - 将默认命名空间导出
 - 将 resource 导出，并且在末尾使用`as const`来让 TypeScript 断言，告诉编译器这个对象缩窄后的类型。
 
-
-
 再看类型声明文件：`i18next.d.ts`:
 
 ```typescript
@@ -534,13 +510,9 @@ declare module "i18next" {
 
 给 module `i18next`的 `CustomTypeOptions`接口声明默认命名空间和 resource 的类型，如此一来就可以在`t()`这里自动补全`key`了。
 
-
-
 ### JSON 懒加载
 
 直接通过 `import`语句导入`json`文件，在打包的时候会把全部翻译资源打包到代码中去，显著增加`bundle`尺寸。
-
-
 
 在开始之前，明确自己的场景和需求，回答以下几个问题：
 
@@ -590,8 +562,6 @@ export default i18n;
 ```bash
 http://localhost:3000/static/js/async/src_locales_en_common_json.js
 ```
-
-
 
 回过头来看，我们的目标还有一个 React Suspense 特性需要支持。为什么要这个特性？在本地开发的时候资源加载极快，你可能一不小心没注意到翻译的结果会出现闪烁，究其原因在于 i18next-react 在初次渲染的时候还没有获取到翻译的资源，于是会立即渲染对应的 key 的字符串内容。
 
@@ -649,12 +619,12 @@ export const Route = createRootRoute({
 
 
 
-`rsbuild`会将这个 json 文件打包成一个独立的`js`文件，此外上述配置还加上了 react suspense 支持：
+`rsbuild`会将这个 json 文件打包成一个独立的`js`文件，此外上述配置还加上了 react use suspense 支持：
 
 ```typescript
 {
   react: {
-    useSuspense: false,
+    useSuspense: true,
   }
 }
 ```
@@ -663,25 +633,7 @@ export const Route = createRootRoute({
 
 
 
-#### CDN
-
-`i18next-resources-to-backend`通过在 Build 时将 JSON 打包成独立的 js chunk，运行时动态加载的方式降低了主 chunk 的体积。
-
-这种方案无法做到动态修改翻译资源，每次更新都需要重新 Build 和 Deploy 到线上环境。
-
-如果将翻译内容放到 OSS 上，利用 CDN 的能力在初始化和切换的时候请求附近的 CDN 资源，相对来说会快上一些。
-
-在之前的代码里，通过`resourcesToBackend`函数，传入一个异步函数，内部动态导入特定语言和命名空间的翻译 JSON 数据。如果需要使用 CDN 资源，其实可以改为通过 `fetch`的方式请求到`JSON`数据再返回。
-
-但是我们通常会使用`i18next-http-backend`这个插件来实现这个需求，这个插件帮我们处理了手写 fetch 可能会遇到的一些问题：
-
-- 
-
-
-
-
-
-#### 出海应用+独立服务器部署 （React SPA）
+#### 出海应用 + 独立服务器部署（React SPA）
 
 独立服务器意味着资源存放在服务器这里，出海应用的用户可能来自不同的国家和地区，这时候使用 CDN 存放 JSON 翻译资源可以加快初始化和更换语言的速度。
 
@@ -739,6 +691,8 @@ backend: {
   },
 }
 ```
+
+> 现在，我们可以将 /locales 目录移动到 public 下
 
 我们通过环境变量去设置翻译文件的来源，在开发模式下读取'/'（public）的翻译文件，在生产环境读取 CDN 地址的资源。
 
@@ -799,7 +753,7 @@ export default i18n
 
 
 
-#### XXX产品
+#### XXX 产品
 
 假设...
 
@@ -1079,7 +1033,7 @@ error Command failed with exit code 1.
 
 好了，我的 React SPA 多语言方案大致已经梳理清楚了，如果你也有一些不同的见解，欢迎留言交流。
 
-下次，给大家带来 React SPA + Antd 的使用分析，通过其 token 机制制定多主题色系统，最终实现一个我们满意的风格的文章。
+下一篇分析我将给大家带来 React SPA + Antd 的使用分析，通过其 token 机制制定多主题色系统，最终实现一个我们满意的风格。
 
 
 
